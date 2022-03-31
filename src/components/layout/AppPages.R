@@ -21,8 +21,6 @@ AppPagesUI <- function(id) {
   ns <- NS(id)
 
   PageUIList <- lapply(AppPageList, function(x) {
-    x <- str_extract(x, '([^/]+$)')
-    
     tabItem(tabName = str_to_lower(x), get(paste0(x, 'ModuleUI'))(ns(paste0(x, 'PageModule'))))
   })
   
@@ -33,18 +31,15 @@ AppPages <- function(input, output, session, ...) {
 
   ns <- session$ns
   
+  AppPagesData <- do.call(reactiveValues, sapply(AppPageList, function(x) NULL))
+  
   lapply(AppPageList, function(x) {
-    x <- str_extract(x, '([^/]+$)')
-    
-    PageConfig <- get(paste0(x, 'PageConfig'))
-    callModule(get(paste0(x, 'Module')), paste0(x, 'PageModule'), ...)
+    callModule(get(paste0(x, 'Module')), paste0(x, 'PageModule'), pageName = x, appData = AppPagesData, ...)
   })
   
   # Hackish Way to Select Tab
   shinyjs::runjs('setTimeout(function() {$("#LeftSideBarContent-menu>ul>li:nth-child(1)>a").trigger("click");}, 100);')
 }
-
-
 
 
 
