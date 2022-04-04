@@ -1,5 +1,5 @@
 
-AppTheme <- shinyDashboardThemeDIY(
+AppTheme <- dashboardthemes::shinyDashboardThemeDIY(
   
   ### general
   appFontFamily = "Arial",
@@ -24,7 +24,7 @@ AppTheme <- shinyDashboardThemeDIY(
   headerBoxShadowSize = "2px 2px 2px",
   
   ### sidebar
-  sidebarBackColor = cssGradientThreeColors(
+  sidebarBackColor = dashboardthemes::cssGradientThreeColors(
     direction = "down",
     colorStart = "rgb(20,97,117)",
     colorMiddle = "rgb(56,161,187)",
@@ -54,7 +54,7 @@ AppTheme <- shinyDashboardThemeDIY(
   sidebarTabBorderColor = "rgb(35,106,135)",
   sidebarTabBorderWidth = 1,
   
-  sidebarTabBackColorSelected = cssGradientThreeColors(
+  sidebarTabBackColorSelected = dashboardthemes::cssGradientThreeColors(
     direction = "right",
     colorStart = "rgba(44,222,235,1)",
     colorMiddle = "rgba(44,222,235,1)",
@@ -66,7 +66,7 @@ AppTheme <- shinyDashboardThemeDIY(
   sidebarTabTextColorSelected = "rgb(0,0,0)",
   sidebarTabRadiusSelected = "0px 20px 20px 0px",
   
-  sidebarTabBackColorHover = cssGradientThreeColors(
+  sidebarTabBackColorHover = dashboardthemes::cssGradientThreeColors(
     direction = "right",
     colorStart = "rgba(44,222,235,1)",
     colorMiddle = "rgba(44,222,235,1)",

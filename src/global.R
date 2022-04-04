@@ -1,51 +1,81 @@
  
 
-### Source the file to load the 
-
 # Import Libraries
 #################################
 
-library(R.utils)
-library(plyr)
+# Base Packages
+# Use check_package('package_name') to check if it exist before adding it here.
+# This will reload the start-up time of shiny significantly.
+# No need to load package if there's minimal usage of it.
+# Instead add it to hidden and call it via <package_name>::
+base_dependencies <- list(
+  # Check for attached Packages with
+  # names(sessionInfo()$otherPkgs)
+  'attached' = c(
+    'rlang',
+    'shiny', 'shinydashboard', 'shinydashboardPlus', 'DT',
+    'magrittr', 'tidyverse'
+  ),
+  'hidden' = c(
+    'shinyjqui', 'shinyWidgets', 'dashboardthemes', 'sodium'
+  )
+)
 
-library(shiny)
-library(shinyjs)
-library(shinyWidgets)
-library(shinydashboard)
-library(shinydashboardPlus)
-library(dashboardthemes)
-library(shinyjqui)
+# Module Packages
+module_dependencies <- c()
 
-library(DBI)
-library(glue)
-library(DT)
+# App Packages
+app_dependencies <- c('plotly')
 
-library(stringr)
-library(readr)
+# Load Packages
+# Faster load time compared to loading it individually
+suppressWarnings(suppressMessages(invisible(
+  lapply(c(base_dependencies$attached, module_dependencies, app_dependencies), library, character.only = T, quietly = T)
+)))
 
-library(tidyverse)
-library(jsonlite)
-library(dplyr)
-library(tidyr)
+options(readr.show_col_types = F)
 
+
+
+# Generic Functions
 #######################################################################
-provided <- function(data, condition, call) {
-  if (rlang::eval_tidy(enquo(condition), data)) {
-    rlang::eval_tidy(rlang::quo_squash(quo(data %>% !!enquo(call))))
+`%!in%` <- Negate(`%in%`)
+
+check_package <- function(x) {
+  x %in% all_avail_packages()
+}
+
+all_avail_packages <- function() {
+  unlist(base_dependencies) %>%
+    c(module_dependencies, app_dependencies) %>%
+    tools::package_dependencies(recursive = T) %>%
+    unlist() %>%
+    unique()
+}
+
+provided <- function(data, condition, call, call2 = NULL) {
+  condition <- ifelse(is.logical(condition), condition, rlang::eval_tidy(rlang::enquo(condition), data))
+  
+  if (condition) {
+    rlang::eval_tidy(rlang::quo_squash(rlang::quo(data %>% !!rlang::enquo(call))))
+  } else if (!is.null(call2)) {
+    rlang::eval_tidy(rlang::quo_squash(rlang::quo(data %>% !!rlang::enquo(call2))))
   } else data
 }
 
 formatDTDisplay <- function(a, selectChoice = 'multiple', currencyCol = NULL, roundCol = NULL, roundDigit = 2, pagelen = 50, rownames = F) {
-  a %>% datatable(#extensions = 'Buttons',
-    selection = selectChoice, rownames = rownames, filter = 'top', escape = F,
-    options = list( pageLength = pagelen, scrollX = T, scrollY = "500px", dom = 'T<"clear">lBfrtip')
-  ) %>%
-    provided(!is.null(currencyCol), formatCurrency(currencyCol, currency = "", interval = 3, mark = ",")) %>%
-    provided(!is.null(roundCol), formatRound(roundCol, digits = roundDigit))
+  a %>%
+    DT::datatable(
+      selection = selectChoice, rownames = rownames, filter = 'top', escape = F,
+      options = list(pageLength = pagelen, scrollX = T, scrollY = "500px", dom = 'T<"clear">lBfrtip')
+    ) %>%
+    provided(!is.null(currencyCol), DT::formatCurrency(currencyCol, currency = "", interval = 3, mark = ",")) %>%
+    provided(!is.null(roundCol), DT::formatRound(roundCol, digits = roundDigit))
 }
 
 
 
+# Javascript Addons
 #######################################################################
 jscode <- "
 shinyjs.collapse = function(boxid) {
@@ -55,25 +85,39 @@ $('#' + boxid).closest('.box').find('[data-widget=collapse]').click();
 
 
 
-# App Data
+# App Static Data
 #################################
+
+
+
 
 # App Initialization
 #################################
+
 # Modules
+R.utils::sourceDirectory('src/components/modules', modifiedOnly = F, recursive = T)
 
 # Widgets
-sourceDirectory('src/components/widgets', modifiedOnly = F)
+source('src/components/widgets/widgets.R')
 
 # Pages
-sourceDirectory('src/pages/', modifiedOnly = F, recursive = T)
+R.utils::sourceDirectory('src/pages/', modifiedOnly = F, recursive = T)
 
 # Page Router
 source('src/components/layout/AppPages.R')
 
 # App Layout
-sourceDirectory('src/components/layout/', modifiedOnly = F)
+R.utils::sourceDirectory('src/components/layout/', modifiedOnly = F)
 
 # Scripts
 
-# test line
+
+
+
+
+
+
+
+
+
+# End of script

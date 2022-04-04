@@ -4,7 +4,9 @@
 # Header UI
 #################################
 
-widgetUI <- tags$li(class = "dropdown")
+widgetUI <- tags$li(class = "dropdown",
+  logoutUI('logout')
+)
 
 AppHeaderUI <- shinydashboardPlus::dashboardHeader(
   

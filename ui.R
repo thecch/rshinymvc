@@ -12,10 +12,4 @@ shinyUI(
   )
 )
 
-
-
-
-
-
-
-
+# End of script

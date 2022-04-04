@@ -9,15 +9,19 @@ aaMainModuleUI <- function(id) {
 
 aaMainModule <- function(input, output, session, pageName, appData, ...) {
   
-	ns <- session$ns
+  ns <- session$ns
+  env_bind(parent.env(environment()), ...)
+  credentials <- reactive({ req(session$userData$credentials()) })
+  username <- reactive({ req(credentials()$info$username) })
+  observe({ appendAccessLog(username(), getwd(), pageName, '', '') })
 
 	output$MainUI <- renderUI({
 	  # req(appData[['abContent']]())
 	  
-		HTML(paste0(
-		  "<font size=5 color='blue'>Hi,<br/>Welcome to Lipidall Shiny Template. 1</font>",
-		  appData[['abContent']]()$test
-		))
+		column(12,
+		  HTML("<font size=5 color='blue'>Hi,<br/>Welcome to Shiny Template.</font>"),
+		  br()
+		)
 	})
 	
 	
@@ -44,7 +48,12 @@ aaMainPageConfig <- list(
   'icon' = 'home',
   
   # Sub-menu
-  'submenu' = 'Main'
+  'submenu' = 'Main',
+  
+  # Roles with permission to view page.
+  # Exclusion will cause user to be TOTALLY unable to view page
+  # Partial permission will have to be controlled within module
+  'permission' = c('admin', 'guest')
 )
 
 

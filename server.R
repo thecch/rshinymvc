@@ -1,20 +1,20 @@
 
 shinyServer(function(input, output, session) {
   
-  # Source global variables
-  source('src/global.R')
-  
   # App Layout
-  ###########################
+  #################################
 
+  #Layout
   callModule(AppLeftSideBar, 'LeftSideBarContent')
-  callModule(AppPages, 'AppPages')
+  callModule(AppBody, 'AppBodyContent', global = session)
   
   
-  # App Data
-  ###########################
+  
+  # App Dynamic Data
+  #################################
   
   
+
 })
 
 # End of script

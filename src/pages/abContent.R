@@ -9,10 +9,14 @@ abContentModuleUI <- function(id) {
 
 abContentModule <- function(input, output, session, pageName, appData, ...) {
   
-	ns <- session$ns
+  ns <- session$ns
+  env_bind(parent.env(environment()), ...)
+  credentials <- reactive({ req(session$userData$credentials()) })
+  username <- reactive({ req(credentials()$info$username) })
+  observe({ appendAccessLog(username(), getwd(), session$ns('name'), '', '') })
 
 	output$MainUI <- renderUI({
-		box(
+		box(width = 12, 
 		  pageName
 		)
 	})
@@ -40,7 +44,12 @@ abContentPageConfig <- list(
   'icon' = 'box',
   
   # Sub-menu
-  'submenu' = 'Content'
+  'submenu' = 'Content',
+  
+  # Roles with permission to view page.
+  # Exclusion will cause user to be TOTALLY unable to view page
+  # Partial permission will have to be controlled within module
+  'permission' = c('admin')
 )
 
 
