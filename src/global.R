@@ -1,4 +1,6 @@
- 
+
+
+nodename <- Sys.info()[['nodename']]
 
 # Import Libraries
 #################################
@@ -13,11 +15,11 @@ base_dependencies <- list(
   # names(sessionInfo()$otherPkgs)
   'attached' = c(
     'rlang',
-    'shiny', 'shinydashboard', 'shinydashboardPlus', 'DT',
-    'magrittr', 'tidyverse'
+    'shiny', 'shinydashboard', 'DT',
+    'tidyverse'
   ),
   'hidden' = c(
-    'shinyjqui', 'shinyWidgets', 'dashboardthemes', 'sodium'
+    'shinyjqui', 'shinyWidgets', 'shinydashboardPlus', 'dashboardthemes', 'sodium'
   )
 )
 
@@ -41,10 +43,6 @@ options(readr.show_col_types = F)
 #######################################################################
 `%!in%` <- Negate(`%in%`)
 
-check_package <- function(x) {
-  x %in% all_avail_packages()
-}
-
 all_avail_packages <- function() {
   unlist(base_dependencies) %>%
     c(module_dependencies, app_dependencies) %>%
@@ -52,6 +50,11 @@ all_avail_packages <- function() {
     unlist() %>%
     unique()
 }
+
+check_package <- function(x) {
+  x %in% all_avail_packages()
+}
+
 
 provided <- function(data, condition, call, call2 = NULL) {
   condition <- ifelse(is.logical(condition), condition, rlang::eval_tidy(rlang::enquo(condition), data))

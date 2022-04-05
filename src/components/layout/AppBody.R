@@ -11,7 +11,7 @@ AppBodyContentUI <- function(id) {
   
   ns <- shiny::NS(id)
   
-  shiny::tagList(
+  shiny::fluidRow(
     shiny::uiOutput(ns('loginUI')),
     AppPagesUI(ns('AppPages'))
   )

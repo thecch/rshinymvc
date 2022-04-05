@@ -19,7 +19,7 @@ UserProfileWidget <- function(input, output, session, ...) {
   output$ProfileBadge <- renderUI({
 
     sidebarUserPanel(
-      "Demo",
+      req(session$userData$credentials()$info$username),
       image = "img/usr/user_profile.png"
     )
     

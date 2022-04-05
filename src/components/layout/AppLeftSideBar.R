@@ -65,11 +65,18 @@ AppLeftSideBar <- function(input, output, session, ...) {
 # Left Side Bar UI
 #################################
 
-AppLeftSideBarUI <- dashboardSidebar(
-  collapsed = F,
-  
-  AppLeftSideBarContentUI('LeftSideBarContent')
-)
-
+AppLeftSideBarUI <- if (packageVersion('shinydashboardPlus') < 1) {
+  shinydashboard::dashboardSidebar(
+    collapsed = F,
+    
+    AppLeftSideBarContentUI('LeftSideBarContent')
+  )
+} else {
+  shinydashboardPlus::dashboardSidebar(
+    collapsed = F,
+    
+    AppLeftSideBarContentUI('LeftSideBarContent')
+  )
+}
 
 
