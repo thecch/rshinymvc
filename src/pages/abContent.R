@@ -49,7 +49,7 @@ abContentPageConfig <- list(
   # Roles with permission to view page.
   # Exclusion will cause user to be TOTALLY unable to view page
   # Partial permission will have to be controlled within module
-  'permission' = c('admin')
+  'permission' = c('admin', 'guest')
 )
 
 

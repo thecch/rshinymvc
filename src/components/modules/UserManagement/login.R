@@ -6,8 +6,8 @@
 
 returnClickJS <- '
 $(document).keyup(function(event) {
-  if ($("#login-password").is(":focus") && (event.keyCode == 13)) {
-    $("#login-button").click();
+  if ($("#%s").is(":focus") && (event.keyCode == 13)) {
+    $("#%s").click();
   }
 });
 '
@@ -21,7 +21,7 @@ loginUI <- function(
   
   shiny::div(id = ns("panel"), style = "width: 500px; max-width: 100%; margin: 0 auto; padding: 20px;",
     shiny::tags$head(
-      shiny::tags$script(shiny::HTML(returnClickJS)),
+      shiny::tags$script(shiny::HTML(sprintf(returnClickJS, ns("password"), ns("button")))),
       shiny::tags$script(type = "text/javascript",
         src = "https://cdnjs.cloudflare.com/ajax/libs/iframe-resizer/3.5.16/iframeResizer.contentWindow.min.js"
       )
@@ -30,7 +30,7 @@ loginUI <- function(
       shiny::tags$h2(title, class = "text-center", style = "padding-top: 0;"),
       shiny::textInput(ns("user_name"), shiny::tagList(shiny::icon("user"), user_title), value = default_username),
       shiny::passwordInput(ns("password"), shiny::tagList(shiny::icon("unlock-alt"), pass_title), value = default_password),
-      shiny::div(style = "text-align: center;", shiny::actionButton(ns("button"), login_title, class = "btn-primary")),
+      shiny::div(style = "text-align: center;", shiny::actionButton(ns("button"), login_title)),
       shinyjs::hidden(
         shiny::div(id = ns("error"), style = "color: red; font-weight: bold; padding-top: 5px;", class = "text-center",
           shiny::tags$p(error_message)
@@ -61,32 +61,25 @@ login <- function(input, output, session, data = getUserBase(), external_auth = 
     
     # Reload Session on logout to remove all data
     shiny::observeEvent(session$userData$logout(), {
+      credentials$user_auth <- F
+      credentials$info <- NULL
       session$reload()
     })
     
     # Login Button Listener
     shiny::observeEvent(input$button, {
                   
-      # check for match of input username to username column in data
-      row_username <- data %>%
-        dplyr::filter(username == input$user_name) %>%
-        dplyr::pull(username)
-      
-      if (length(row_username)) {
-        password_match <- data %>%
-          dplyr::filter(username == input$user_name) %>%
-          dplyr::pull(password_hash) %>%
-          sodium::password_verify(input$password)
-      } else {
-        password_match <- F
-      }
+      credentials$user_auth <- verify_user(input$user_name, input$password)
       
       # # if user name row and password name row are same, credentials are valid
-      if (length(row_username) == 1 && password_match) {
-        credentials$user_auth <- T
+      if (credentials$user_auth) {
         credentials$info <- data %>%
-          dplyr::filter(username == input$user_name) %>%
-          dplyr::collect()
+          dplyr::select(`name`, `username`, `permissions`, `email`) %>%
+          dplyr::filter(`username` == input$user_name) %>%
+          dplyr::collect() %>%
+          unlist() %>%
+          as.list() %>%
+          purrr::map_at('permissions', ~ stringr::str_split(.x, ',')[[1]])
       } else {
         # if not valid temporarily show error message to user
         shinyjs::toggle(id = "error", anim = T, time = 1, animType = "fade")
@@ -98,16 +91,32 @@ login <- function(input, output, session, data = getUserBase(), external_auth = 
   session$userData$credentials <- shiny::reactive({ credentials })
 }
 
+# Verify Login Function
+verify_user <- function(username, password, data = getUserBase()) {
+  # check for match of input username to username column in data
+  row_username <- data %>%
+    dplyr::filter(username == `username`) %>%
+    dplyr::pull(`username`)
+  
+  if (isTruthy(username) && isTruthy(password) && isTruthy(length(row_username))) {
+    data %>%
+      dplyr::filter(`username` == `username`) %>%
+      dplyr::pull(password_hash) %>%
+      sodium::password_verify(password)
+  } else {
+    F
+  }
+}
 
 
 # Log Out Module
 #################################
 
-logoutUI <- function(id, label = "Log out", class = "btn-danger") {
+logoutUI <- function(id, label = "Log out") {
   ns <- shiny::NS(id)
   
   shinyjs::hidden(
-    shiny::actionButton(ns("button"), label, class = class)
+    shiny::actionButton(ns("button"), label)
   )
 }
 

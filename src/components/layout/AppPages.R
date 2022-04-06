@@ -30,7 +30,10 @@ AppPages <- function(input, output, session, ...) {
   
   observeEvent(permissions(), {
     AppPageList %>%
-      purrr::keep(~ any(permissions() %in% get(paste0(.x, 'PageConfig'))[['permission']])) %>%
+      purrr::keep(~ any(
+        permissions() %in% get(paste0(.x, 'PageConfig'))[['permission']],
+        setequal(get(paste0(.x, 'PageConfig'))[['permission']], permissions()))
+      ) %>%
       lapply(function(x) {
         shiny::callModule(get(paste0(x, 'Module')), paste0(x, 'PageModule'), pageName = x, appData = AppPagesData, ...)
       })

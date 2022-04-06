@@ -87,13 +87,16 @@ zbWidgetAccessLogPageConfig <- list(
   # Title for menu
   'title' = 'Access Log',
   
+  # Sub-menu
+  'submenu' = 'Settings',
+  
   # Icon for menu
-  'icon' = 'users',
+  'icon' = 'file-text',
   
   # Roles with permission to view page.
   # Exclusion will cause user to be TOTALLY unable to view page
   # Partial permission will have to be controlled within module
-  'permission' = c('admin', 'guest')
+  'permission' = c('admin')
 )
 
 

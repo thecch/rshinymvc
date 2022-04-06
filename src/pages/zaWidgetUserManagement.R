@@ -8,18 +8,23 @@ zaWidgetUserManagementModuleUI <- function(id) {
     box(width = 12,  status = "primary",
       tabsetPanel(
         tabPanel('UserList',
+          shiny::tags$script(shiny::HTML(paste0(
+            "function get_id(clicked_id) {",
+              "Shiny.setInputValue('", ns("current_id"), "', clicked_id, {priority: 'event'});",
+            "}"
+          ))),
           actionButton(ns('refreshUser'), 'Refresh'),
-          DTOutput(ns('user_base'))
-        ),
-        tabPanel('Change',
-          uiOutput(ns('ChangeForm')),
-          uiOutput(ns('infoChangeMsg')),
-          uiOutput(ns('uTypeChangeMsg')),
-          uiOutput(ns('addUMsg')),
-          uiOutput(ns('delUMsg')),
-          uiOutput(ns('passordChangeMsg')),
-          uiOutput(ns('ChangeFormDetails'))
+          DTOutput(ns('user_base_ui'))
         )
+        # tabPanel('Change',
+        #   uiOutput(ns('ChangeForm')),
+        #   uiOutput(ns('infoChangeMsg')),
+        #   uiOutput(ns('uTypeChangeMsg')),
+        #   uiOutput(ns('addUMsg')),
+        #   uiOutput(ns('delUMsg')),
+        #   uiOutput(ns('passordChangeMsg')),
+        #   uiOutput(ns('ChangeFormDetails'))
+        # )
       )
     )
   )
@@ -27,47 +32,193 @@ zaWidgetUserManagementModuleUI <- function(id) {
 
 zaWidgetUserManagementModule <- function(input,  output,  session,  ...) {
 
-  ns <- session$ns
-  env_bind(parent.env(environment()), ...)
-  credentials <- reactive({ req(session$userData$credentials()) })
-  username <- reactive({ req(credentials()$info$username) })
-  observe({ appendAccessLog(username(), getwd(), session$ns('name'), '', '') })
-  
   
   # Module Data
   ###############################
   
-  user_base <- reactive({
+  # init
+  ns <- session$ns
+  rlang::env_bind(parent.env(environment()), ...)
+  credentials <- shiny::reactive({ shiny::req(session$userData$credentials()) })
+  username <- shiny::reactive({ shiny::req(credentials()$info$username) })
+  shiny::observe({ appendAccessLog(username(), getwd(), session$ns('name'), '', '') })
+  
+  
+  # Page Data
+  ###############################
+  rv <- reactiveValues(commit = NULL)
+  
+  user_base <- shiny::reactive({
     input$refreshUser
-    getUserBase()
+    rv$commit
+    user_name <- shiny::req(username())
+    permissions <- shiny::req(credentials()$info$permissions)
+    
+    getUserBase() %>%
+      dplyr::bind_rows(rlang::set_names(rep('', ncol(.)), colnames(.))) %>% {
+        if ('admin' %!in%  permissions) {
+          dplyr::filter(., `username` == user_name) %>%
+            dplyr::mutate('Update' = create_btns(`username`, ns, user_name, T))
+        } else {
+          dplyr::mutate(., 'Update' = create_btns(`username`, ns, user_name, F))
+        }
+      }
+      
   })
   
-  output$user_base <- renderDT({
+  output$user_base_ui <- DT::renderDT({
     user_base() %>%
-      select('username', 'name', 'permissions') %>%
-      formatDTDisplay()
+      dplyr::select(-`password_hash`)
+  }, selection = 'single', escape = F, rownames = F, editable = F, options = list(processing = F, scrollX = T))
+  
+  
+  # Page
+  ###############################
+  
+  # Edit and Delete User
+  shiny::observeEvent(input$current_id, {
+    shiny::req(!is.null(input$current_id) & stringr::str_detect(input$current_id, pattern = "edit|delete|new|reset"))
+    selected_username <- stringr::str_replace(input$current_id, '.*(edit_|delete_|new_|reset_)', '')
+    mode <- stringr::str_extract(input$current_id, '(delete|edit|new|reset)')
+    
+    shiny::showModal(
+        shiny::modalDialog(fade = F, 
+          title = h3(sprintf('%s User', stringr::str_to_title(mode))),
+          htmltools::tags$head(htmltools::tags$script(shiny::HTML(sprintf(returnClickJS, ns("confirmPassword"), ns("confirmButton"))))),
+          shiny::div(style = 'padding: 16px 0 24px 0;',
+            if (mode == 'delete') {
+              shiny::HTML(sprintf('Are you sure you want to delete the user <b>%s</b>?', selected_username))
+            } else if (mode == 'edit') {
+              user_base() %>%
+                filter(`username` == selected_username) %>%
+                dplyr::select(-`Update`, -`password_hash`, -`username`) %>%
+                tidyr::gather() %>%
+                purrr::transpose() %>%
+                purrr::map(~ shiny::textInput(
+                  inputId = ns(.$key), label = stringr::str_to_title(stringr::str_replace(.$key, '_', ' ')), value = .$value)
+                ) %>%
+                { do.call('tagList', purrr::compact(.)) } %>%
+                htmltools::tagInsertChildren(after = 0, (shinyjs::disabled(shiny::textInput(ns('username'), 'Username', value = selected_username))))
+            } else if (mode == 'new') {
+              names(user_base()) %>%
+                purrr::discard(~ str_detect(.x, '(password_hash|Update)')) %>%
+                unique() %>%
+                purrr::map(~ shiny::textInput(inputId = ns(.), label = stringr::str_to_title(.), value = '')) %>%
+                { do.call('tagList', purrr::compact(.)) } %>%
+                shiny::tagAppendChildren(
+                  shiny::passwordInput(ns('password'), 'New Password'),
+                  shiny::passwordInput(ns('confirm_password'), 'Confirm New Password')
+                )
+            } else if (mode == 'reset') {
+              shiny::tagList(
+                shinyjs::disabled(shiny::textInput(ns('username'), 'Username', value = selected_username)),
+                shiny::passwordInput(ns('password'), 'New Password'),
+                shiny::passwordInput(ns('confirm_password'), 'Confirm New Password')
+              )
+            }
+          ),
+          shiny::passwordInput(ns('confirmPassword'), NULL, placeholder = 'Password', width = '100%'),
+          shiny::helpText('Admin actions require password reconfirmation.', style = 'padding-bottom: 12px;'),
+          shiny::fluidRow(style = "font-weight: bold;", shiny::column(12, style = 'min-height: 16 px;',
+            shinyjs::hidden(shiny::p(id = ns("error"), style = 'color: #dc3545;', textOutput(ns('error_message')))),
+            shinyjs::hidden(shiny::p(id = ns("success"), style = 'color: #28a745;', textOutput(ns('success_message'))))
+          )),
+          footer = shiny::div(
+            shiny::actionButton(ns('confirmButton'), 'Confirm', class = ifelse(mode == 'delete', 'btn-danger', 'btn-info')),
+            shiny::modalButton("Cancel")
+          )
+        )
+    )
   })
+  
+
+  
+  shiny::observeEvent(input$confirmButton, {
+    mode <- stringr::str_extract(input$current_id, '(delete|edit|new|reset)')
+    message <- list('status' = NULL, 'text' = '')
+    
+    if (verify_user(username(), input$confirmPassword)) {
+      if (mode == 'delete') {
+        deleteUser(stringr::str_replace(input$current_id, '.*(edit_|delete_|new_)', ''))
+      } else if (mode == 'edit') {
+        args <- names(getUserBase()) %>%
+          purrr::discard(~ str_detect(.x, 'password')) %>%
+          unique() %>%
+          { rlang::set_names(purrr::map(., ~ input[[.]]), .) }
+        
+        do.call('update_info', args)
+        message <- list('status' = T, 'text' = 'Info Successfully Updated')
+      } else if (mode == 'new') {
+        args <- c(names(getUserBase()), 'password', 'confirm_password') %>%
+          purrr::discard(~ stringr::str_detect(.x, 'password_hash')) %>%
+          unique() %>%
+          { rlang::set_names(purrr::map(., ~ input[[.]]), .) }
+        
+        if (args$password == args$confirm_password) {
+          do.call('add_user', args)
+          message <- list(status = T, text = 'User successfully Added')
+        } else {
+          message <- list(status = F, text = 'New passwords does not match')
+        }
+      } else if (mode == 'reset') {
+        args <- c('username', 'password', 'confirm_password') %>%
+          { rlang::set_names(purrr::map(., ~ input[[.]]), .) }
+        
+        if (args$password == args$confirm_password) {
+          do.call('update_info', args)
+          message <- list(status = T, text = 'Password successfully reset')
+        } else {
+          message <- list(status = F, text = 'New passwords does not match')
+        }
+      }
+    } else {
+      message <- list(status = F, text = 'Password is incorrect')
+    }
+    
+    if (!is.null(message$status) & message$status) {
+      shinyjs::hide(id = "error", anim = T, time = 1, animType = "fade")
+      shinyjs::show(id = "success", anim = T, time = 1, animType = "fade")
+      shinyjs::delay(5000, shinyjs::hide(id = "success", anim = T, time = 1, animType = "fade"))
+      shiny::updateTextInput(session = session, 'confirmPassword', label = NULL, value = '')
+      shiny::removeModal()
+      rv$commit <- input$confirmButton
+      
+      output$success_message <- shiny::renderText({
+        message$text
+      })
+    } else if (!is.null(message$status) & !message$status) {
+      shinyjs::hide(id = "success", anim = T, time = 1, animType = "fade")
+      shinyjs::show(id = "error", anim = T, time = 1, animType = "fade")
+      shinyjs::delay(5000, shinyjs::hide(id = "error", anim = T, time = 1, animType = "fade"))
+      
+      output$error_message <- shiny::renderText({
+        message$text
+      })
+    }
+  })
+  
   
   output$ChangeForm <- renderUI({
     user_base <- user_base()
-    username <- credentials()$info$username
+    username <- req(credentials()$info$username)
     
     inputPanel(
       selectInput(
         ns('usernameSelect'), 'Select User',
-        ifelse(req(credentials()$info$permissions) == 'admin', user_base, filter(user_base, `username` == username)),
+        ifelse(credentials()$info$permissions == 'admin', pull(user_base, username), username),
         username, selectize = F
       )
     )
   })
   
   output$ChangeFormDetails <- renderUI({
+    selected_username <- req(input$usernameSelect)
     
     user_base <- user_base() %>%
-      filter(`username` == input$usernameSelect)
+      dplyr::filter(`username` == selected_username)
     uList <- setdiff(user_base$username, credentials()$info$username)
     
-    tabsetPanel(
+    ChangeFormList <- list(
       tabPanel('infoChange', inputPanel(
         lapply(setdiff(colnames(user_base), c('username', 'password_hash', 'permissions')), function(x) {
           textInput(ns(sprintf('%sTxt', x)), x, user_base[, x])
@@ -104,23 +255,8 @@ zaWidgetUserManagementModule <- function(input,  output,  session,  ...) {
         actionButton(ns('uDelBtn'), 'Submit')
       ))
     )
-  })
-  
-  observeEvent(input$uDelBtn, {
-    if (credentials()$info$permissions == 'admin') {
-      if (sodium::password_verify(credentials()$info$password_hash, input$delAdminPw)) {
-        deleteUser(input$delUsername)
-        msg <- sprintf("%s: Deleted user %s", Sys.time(), input$delUsername)
-      } else {
-        msg <- sprintf("%s: Requestor password incorrect", Sys.time())
-      }
-    } else {
-      msg <- sprintf("%s: Requestor does not have admin rights", Sys.time())
-    }
     
-    output$delUMsg <- renderUI({
-      HTML(msg)
-    })
+    do.call('tabsetPanel', ChangeFormList)
   })
   
   observeEvent(input$uAddBtn, {
@@ -223,14 +359,6 @@ zaWidgetUserManagementModule <- function(input,  output,  session,  ...) {
   })
   
   
-  
-  # Export Data
-  #####################
-  dataExport <- reactiveValues(
-    'test' = 'Content'
-  )
-  
-  appData[[pageName]] <- reactive({ reactiveValuesToList(dataExport) })
 }
 
 
@@ -240,10 +368,13 @@ zaWidgetUserManagementModule <- function(input,  output,  session,  ...) {
 zaWidgetUserManagementPageConfig <- list(
   
   # Disable Page
-  disabled = T,
+  # disabled = T,
   
   # Title for menu
-  'title' = 'UserManagement', 
+  'title' = 'Account',
+  
+  # Sub-menu
+  'submenu' = 'Settings',
   
   # Icon for menu
   'icon' = 'users', 
@@ -251,7 +382,7 @@ zaWidgetUserManagementPageConfig <- list(
   # Roles with permission to view page.
   # Exclusion will cause user to be TOTALLY unable to view page
   # Partial permission will have to be controlled within module
-  'permission' = c('admin',  'user',  'demo')
+  'permission' = c('admin', 'guest')
 )
 
 

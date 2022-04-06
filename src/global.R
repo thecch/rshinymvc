@@ -46,7 +46,7 @@ options(readr.show_col_types = F)
 all_avail_packages <- function() {
   unlist(base_dependencies) %>%
     c(module_dependencies, app_dependencies) %>%
-    tools::package_dependencies(recursive = T) %>%
+    tools::package_dependencies(recursive = T, db = installed.packages()) %>%
     unlist() %>%
     unique()
 }
@@ -54,7 +54,6 @@ all_avail_packages <- function() {
 check_package <- function(x) {
   x %in% all_avail_packages()
 }
-
 
 provided <- function(data, condition, call, call2 = NULL) {
   condition <- ifelse(is.logical(condition), condition, rlang::eval_tidy(rlang::enquo(condition), data))
@@ -74,6 +73,37 @@ formatDTDisplay <- function(a, selectChoice = 'multiple', currencyCol = NULL, ro
     ) %>%
     provided(!is.null(currencyCol), DT::formatCurrency(currencyCol, currency = "", interval = 3, mark = ",")) %>%
     provided(!is.null(roundCol), DT::formatRound(roundCol, digits = roundDigit))
+}
+
+modify_stop_propagation <- function(x) {
+  x$children[[1]]$attribs$onclick = "event.stopPropagation()"
+  x
+}
+
+create_btns <- function(x, ns = NS(''), username = NULL, admin = F) {
+  if (admin) {
+    x %>%
+      purrr::map_chr(~ as.character(
+        shiny::actionButton(ns(paste0('reset_', .x)), '', icon = shiny::icon('key'), class = 'btn-warning', onclick = 'get_id(this.id)') 
+      ))
+  } else {
+    x %>%
+      purrr::map_chr(~ as.character(
+        shiny::div(class = "btn-group",
+          if (shiny::isTruthy(.x)) {
+            shiny::actionButton(ns(paste0('edit_', .x)), '', icon = shiny::icon('edit'), class = 'btn-info', onclick = 'get_id(this.id)')    
+          } else {
+            shiny::actionButton(ns(paste0('new_', .x)), '', icon = shiny::icon('plus'), class = 'btn-success', onclick = 'get_id(this.id)')
+          },
+          if (shiny::isTruthy(.x)) {
+            shiny::actionButton(ns(paste0('reset_', .x)), '', icon = shiny::icon('key'), class = 'btn-warning', onclick = 'get_id(this.id)')
+          },
+          if (.x != username && shiny::isTruthy(.x)) {
+            shiny::actionButton(ns(paste0('delete_', .x)), '', icon = shiny::icon('trash-alt'), class = 'btn-danger', onclick = 'get_id(this.id)')
+          }
+        )
+      ))
+  }
 }
 
 

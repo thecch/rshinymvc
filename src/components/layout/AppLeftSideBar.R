@@ -42,14 +42,12 @@ AppLeftSideBar <- function(input, output, session, ...) {
     output$menu <- shinydashboard::renderMenu({
       MenuUIList <- lapply(AppMenuList, function(MenuName) {
         curAppSubMenuItemList <- AppPageConfigList %>%
-          purrr::keep(~ any(.x$permission == permissions())) %>%
+          purrr::keep(~ any(permissions() %in% .x$permission), setequal(.x$permission, permissions())) %>%
           purrr::keep(~ .x$submenu == MenuName) %>%
           purrr::map(~ menuSubItem(.x$title, tabName = str_to_lower(.x$id), icon = icon(.x$icon, verify_fa = F)))
         
         if (length(curAppSubMenuItemList) > 1) {
-          modify_stop_propagation(
-            menuItem(MenuName, curAppSubMenuItemList, startExpanded = T)
-          )
+          menuItem(MenuName, curAppSubMenuItemList, startExpanded = T, icon = icon('bars', verify_fa = F))
         } else {
           curAppSubMenuItemList
         }

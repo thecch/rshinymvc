@@ -14,7 +14,7 @@ createUserBase <- function(path = userListFile) {
 
 # Get User DB Connection
 getUserBase <- function(path = userListFile) {
-  read_csv(path)
+  readr::read_csv(path)
 }
 
 
@@ -30,59 +30,70 @@ addUser <- function(addusername, addpassword, addPermissions, addname, addemail,
 
 # Add User V2
 addUser2 <- function(addusername, addpassword, addPermissions, addList, user_db = userListFile) {
-  read_csv(user_db) %>%
-    dplyr::rows_upsert(tibble(username = username, password = sodium::password_store(password), permissions = permissions), by = 'username') %>%
-    write_csv(user_db)
+  readr::read_csv(user_db) %>%
+    dplyr::rows_upsert(
+      tibble::tibble(username = username, password = sodium::password_store(password), permissions = permissions), by = 'username'
+    ) %>%
+    readr::write_csv(user_db)
 }
 
 # Add user v3
 add_user <- function(..., user_db = userListFile) {
-  new_user <- tibble(...) %>%
-    mutate('password_hash' = sodium::password_store(`password`)) %>%
-    select(-`password`)
+  new_user <- tibble::tibble(...) %>%
+    dplyr::mutate('password_hash' = sodium::password_store(`password`)) %>%
+    dplyr::select(-`password`)
   
-  read_csv(user_db) %>%
-    rows_upsert(new_user, by = 'username') %>%
-    write_csv(user_db)
+  readr::read_csv(user_db) %>%
+    dplyr::rows_upsert(dplyr::select(new_user, names(.)), by = 'username') %>%
+    readr::write_csv(user_db)
 }
 
 # Delete User
 deleteUser <- function(delUsername, user_db = userListFile) {
-  read_csv(user_db) %>%
-    filter(`username` != delUsername) %>%
-    write_csv(user_db)
+  readr::read_csv(user_db) %>%
+    dplyr::filter(`username` != delUsername) %>%
+    readr::write_csv(user_db)
 }
 
 # Update Permission
 updatePermission <- function(uTypeSelect, usernameSelect, user_db = userListFile) {
   read_csv(user_db) %>%
-    rows_update(tibble(username = usernameSelect, permissions = uTypeSelect), by = 'username') %>%
-    write_csv(user_db)
+    dplyr::rows_update(tibble::tibble(username = usernameSelect, permissions = uTypeSelect), by = 'username') %>%
+    readr::write_csv(user_db)
 }
 
 # Update Password
 updatePassword <- function(usernameSelect, password, user_db = userListFile) {
-  read_csv(user_db) %>%
-    rows_update(tibble(username = usernameSelect, password = sodium::password_store(password)), by = 'username') %>%
-    write_csv(user_db)
+  readr::read_csv(user_db) %>%
+    dplyr::rows_update(tibble::tibble(username = usernameSelect, password = sodium::password_store(password)), by = 'username') %>%
+    readr::write_csv(user_db)
 }
 
 # Update info
 updateInfo <- function(usernameSelect, nameTxt, emailTxt, user_db = userListFile) {
-  read_csv(user_db) %>%
-    rows_update(tibble(username = usernameSelect, name = nameTxt, email = emailTxt), by = 'username') %>%
-    write_csv(user_db)
+  readr::read_csv(user_db) %>%
+    dplyr::rows_update(tibble::tibble(username = usernameSelect, name = nameTxt, email = emailTxt), by = 'username') %>%
+    readr::write_csv(user_db)
 }
 
 # Update Info v2
 update_info <- function(..., user_db = userListFile) {
-  read_csv(user_db) %>%
-    rows_update(tibble(...), by = 'username') %>%
-    write_csv(user_db)
+  new_info <- tibble::tibble(...) %>%
+    {
+      if ('password' %in% names(list(...))) dplyr::mutate(dplyr::rowwise(.), 'password_hash' = sodium::password_store(`password`))
+      else .
+    }
+  
+  readr::read_csv(user_db) %>%
+    dplyr::rows_update(dplyr::select(new_info, tidyselect::any_of(names(.))), by = 'username') %>%
+    readr::write_csv(user_db)
 }
 
-
-
+# Get Info
+get_info <- function(user_name, user_db = userListFile) {
+  readr::read_csv(user_db) %>%
+    dplyr::filter(`username` == user_name)
+}
 
 
 
