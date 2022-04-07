@@ -63,9 +63,11 @@ updatePermission <- function(uTypeSelect, usernameSelect, user_db = userListFile
 }
 
 # Update Password
-updatePassword <- function(usernameSelect, password, user_db = userListFile) {
+updatePassword <- function(usernameSelect, newpassword, user_db = userListFile) {
   readr::read_csv(user_db) %>%
-    dplyr::rows_update(tibble::tibble(username = usernameSelect, password = sodium::password_store(password)), by = 'username') %>%
+    dplyr::rows_update(
+      tibble::tibble(`username` = usernameSelect, `password_hash` = sodium::password_store(as.character(newpassword)))
+    , by = 'username') %>%
     readr::write_csv(user_db)
 }
 
@@ -78,14 +80,8 @@ updateInfo <- function(usernameSelect, nameTxt, emailTxt, user_db = userListFile
 
 # Update Info v2
 update_info <- function(..., user_db = userListFile) {
-  new_info <- tibble::tibble(...) %>%
-    {
-      if ('password' %in% names(list(...))) dplyr::mutate(dplyr::rowwise(.), 'password_hash' = sodium::password_store(`password`))
-      else .
-    }
-  
   readr::read_csv(user_db) %>%
-    dplyr::rows_update(dplyr::select(new_info, tidyselect::any_of(names(.))), by = 'username') %>%
+    dplyr::rows_update(dplyr::select(tibble::tibble(...), tidyselect::any_of(names(.))), by = 'username') %>%
     readr::write_csv(user_db)
 }
 

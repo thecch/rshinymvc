@@ -29,7 +29,7 @@ loginUI <- function(
     shiny::wellPanel(
       shiny::tags$h2(title, class = "text-center", style = "padding-top: 0;"),
       shiny::textInput(ns("user_name"), shiny::tagList(shiny::icon("user"), user_title), value = default_username),
-      shiny::passwordInput(ns("password"), shiny::tagList(shiny::icon("unlock-alt"), pass_title), value = default_password),
+      shiny::passwordInput(ns("login_password"), shiny::tagList(shiny::icon("unlock-alt"), pass_title), value = default_password),
       shiny::div(style = "text-align: center;", shiny::actionButton(ns("button"), login_title)),
       shinyjs::hidden(
         shiny::div(id = ns("error"), style = "color: red; font-weight: bold; padding-top: 5px;", class = "text-center",
@@ -69,7 +69,7 @@ login <- function(input, output, session, data = getUserBase(), external_auth = 
     # Login Button Listener
     shiny::observeEvent(input$button, {
                   
-      credentials$user_auth <- verify_user(input$user_name, input$password)
+      credentials$user_auth <- verify_user(input$user_name, input$login_password)
       
       # # if user name row and password name row are same, credentials are valid
       if (credentials$user_auth) {
@@ -92,17 +92,17 @@ login <- function(input, output, session, data = getUserBase(), external_auth = 
 }
 
 # Verify Login Function
-verify_user <- function(username, password, data = getUserBase()) {
+verify_user <- function(verify_username, verify_password, data = getUserBase()) {
   # check for match of input username to username column in data
   row_username <- data %>%
-    dplyr::filter(username == `username`) %>%
+    dplyr::filter(`username` == verify_username) %>%
     dplyr::pull(`username`)
   
-  if (isTruthy(username) && isTruthy(password) && isTruthy(length(row_username))) {
+  if (shiny::isTruthy(verify_username) && shiny::isTruthy(verify_password) && shiny::isTruthy(length(row_username))) {
     data %>%
-      dplyr::filter(`username` == `username`) %>%
+      dplyr::filter(`username` == verify_username) %>%
       dplyr::pull(password_hash) %>%
-      sodium::password_verify(password)
+      sodium::password_verify(verify_password)
   } else {
     F
   }
