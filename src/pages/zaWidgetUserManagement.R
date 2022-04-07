@@ -81,7 +81,7 @@ zaWidgetUserManagementModule <- function(input,  output,  session,  ...) {
               shiny::HTML(sprintf('Are you sure you want to delete the user <b>%s</b>?', selected_username))
             } else if (mode == 'edit') {
               user_base() %>%
-                filter(`username` == selected_username) %>%
+                dplyr::filter(`username` == selected_username) %>%
                 dplyr::select(-`Update`, -`password_hash`, -`username`) %>%
                 tidyr::gather() %>%
                 purrr::transpose() %>%

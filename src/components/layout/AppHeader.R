@@ -13,7 +13,7 @@ AppHeaderUI <- if (packageVersion('shinydashboardPlus') < 1) {
     
     # Branding
     title = tagList(
-      tags$a(href = '#top', class = "logo-lg main-logo", img(src = 'img/logo/logo.jpg')),
+      tags$a(href = '#top', class = "logo-lg main-logo", img(src = 'img/logo/logo.png')),
       tags$a(href = '#top', class = "main-logo", img(src = 'img/logo/favicon.png'))
     ),
     

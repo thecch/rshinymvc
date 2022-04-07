@@ -12,13 +12,13 @@ shinyproxyauth <- function() {
   )
   
   # Just for local debugging. Useless.
-  if (Sys.info()[['nodename']] == 'DESKTOP-03RDU2G') {
-    info <- list(
-      'username' = 'guest',
-      'permissions' = stringr::str_trim(stringr::str_split('guest,admin', ',')[[1]]),
-      'name' = 'Guest'
-    )
-  }
+  # if (Sys.info()[['nodename']] == 'DESKTOP-03RDU2G') {
+  #   info <- list(
+  #     'username' = 'guest',
+  #     'permissions' = stringr::str_trim(stringr::str_split('guest,admin', ',')[[1]]),
+  #     'name' = 'Guest'
+  #   )
+  # }
   
   if ('' %!in% info) {
     list('user_auth' = T, 'info' = info)

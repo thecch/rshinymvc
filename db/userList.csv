@@ -1,3 +1,4 @@
 username,password_hash,permissions,name,email
 guest,$7$C6..../....ChgPLQ62tfDDAvrprowsgLX9CmmM6adBUTtE6stRxl8$5LJ8nk7qPqO8gV28EPYvRzToxvzKG9tpmFNrD/U3nA2,"guest,admin",Guest,guest@lipidall.com
 test,$7$C6..../....cMsNgMXsv9lECbRopUXGdaArqH6VKdu.AjLNV11QS4B$enX1o6wxl2QurZVk4yFqusZEEnRvMK3HncesbfVKtE6,test,test,test
+admin,$7$C6..../....a9mEE.WH40VzU69kcRXx/JtXxPiz0F1XGLeGsoCty65$kYW29qMCzK59tRoNxwtPvBmb51W4EKfpYD0xTAm2gt9,admin,Admin,Admin
