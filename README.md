@@ -1,6 +1,7 @@
 # rshinymvc
-<hr>
 
-## Template Login
-Admin: admin/admin
-Guest: guest/guest
+## Misc.
+### Template Login
+
+**Admin**: admin/admin<br>
+**Guest**: guest/guest<br>
